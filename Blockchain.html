@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Blockchain Voting System</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: #ffffff;
+      color: #333;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 98%;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #2a5298;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1e3c72;
+    }
+    .message {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    canvas {
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🗳️ Blockchain Voting System</h1>
+
+    <div class="card">
+      <h2>Cast Your Vote</h2>
+      <input type="text" id="voterId" placeholder="Enter Voter ID" />
+      <input type="text" id="candidate" placeholder="Enter Candidate Name" />
+      <button onclick="addVote()">Add Vote</button>
+      <div class="message" id="message"></div>
+    </div>
+
+    <div class="card">
+      <h2>Voting Results</h2>
+      <canvas id="voteChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const blockchain = {
+      chain: [],
+      voters: []
+    };
+
+    function calculateHash(block) {
+      const data = block.index + block.timestamp + block.vote + block.previous_hash;
+      let hash = 0;
+      for (let i = 0; i < data.length; i++) {
+        hash += data.charCodeAt(i);
+      }
+      return hash;
+    }
+
+    function createBlock(index, vote, previous_hash) {
+      const block = {
+        index: index,
+        timestamp: Date.now(),
+        vote: vote,
+        previous_hash: previous_hash
+      };
+      block.hash = calculateHash(block);
+      return block;
+    }
+
+    function createGenesisBlock() {
+      const genesis = createBlock(0, "Genesis Block", 0);
+      blockchain.chain.push(genesis);
+    }
+
+    createGenesisBlock();
+
+    const voteCount = {};
+
+    function addVote() {
+      const voterId = document.getElementById("voterId").value.trim();
+      const candidate = document.getElementById("candidate").value.trim();
+      const msg = document.getElementById("message");
+
+      if (!voterId || !candidate) {
+        msg.textContent = "❌ Please fill all fields";
+        msg.style.color = "red";
+        return;
+      }
+
+      if (blockchain.voters.includes(voterId)) {
+        msg.textContent = "❌ Voter has already voted";
+        msg.style.color = "red";
+        return;
+      }
+
+      const previousBlock = blockchain.chain[blockchain.chain.length - 1];
+      const voteData = `Voter:${voterId} → Candidate:${candidate}`;
+
+      const newBlock = createBlock(blockchain.chain.length, voteData, previousBlock.hash);
+      blockchain.chain.push(newBlock);
+      blockchain.voters.push(voterId);
+
+      voteCount[candidate] = (voteCount[candidate] || 0) + 1;
+
+      msg.textContent = "✅ Vote added successfully";
+      msg.style.color = "green";
+
+      updateChart();
+      document.getElementById("voterId").value = "";
+      document.getElementById("candidate").value = "";
+    }
+
+    const ctx = document.getElementById('voteChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Votes',
+          data: [],
+          backgroundColor: '#2a5298'
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+
+    function updateChart() {
+      chart.data.labels = Object.keys(voteCount);
+      chart.data.datasets[0].data = Object.values(voteCount);
+      chart.update();
+    }
+
+    const voterInput = document.getElementById("voterId");
+  const candidateInput = document.getElementById("candidate");
+
+  voterInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      candidateInput.focus();
+    }
+  });
+
+  candidateInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addVote();   // submit vote
+    }
+  });
+  </script>
+</body>
+</html>
